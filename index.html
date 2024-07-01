@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App</title>
+</head>
+<style>
+body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: linear-gradient(135deg, #101820, #2e3f4f);
+        }
+        .container {
+            max-width: 800px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #5bc0de;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            margin-top: 10px;
+            border: none;
+            background-color: #5bc0de;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #31b0d5;
+        }
+        .reminder-card {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .reminder-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
+        }
+        .reminder-card::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: calc(100% + 20px);
+            height: calc(100% + 20px);
+            background-color: #5bc0de;
+            border-radius: 10px;
+            opacity: 0.8;
+            z-index: -1;
+            transform: scale(1.1);
+            filter: blur(20px);
+        }
+        .reminder-card-content {
+            position: relative;
+            z-index: 1;
+        }
+        .reminder-card h3 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .reminder-card p {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .controls button {
+            margin: 0 5px;
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .controls button:hover {
+            background-color: #bd2130;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            button {
+                width: 100%;
+            }
+        }
+</style>
+<body>
+    <div class="container">
+        <button id="start-btn">Начать</button>
+        <button id="manual-btn">Добавить вручную</button>
+        <div id="reminder-list"></div>
+    </div>
+
+    <!-- Аудио сигналы -->
+    <audio id="signal1" src="signal1.ogg"></audio>
+    <audio id="signal2" src="signal2.ogg"></audio>
+
+    <script>
+       const reminders = JSON.parse(localStorage.getItem('reminders')) || [];
+
+function saveReminders() {
+    localStorage.setItem('reminders', JSON.stringify(reminders));
+}
+
+function renderReminders() {
+    const reminderList = document.getElementById('reminder-list');
+    reminderList.innerHTML = '';
+
+    reminders.forEach((reminder, index) => {
+        const reminderCard = document.createElement('div');
+        reminderCard.classList.add('reminder-card');
+
+        reminderCard.innerHTML = `
+            <div class="reminder-card-content">
+                <h3>${reminder.name}</h3>
+                <p>${reminder.description}</p>
+                <div class="controls">
+                    <button onclick="editReminder(${index})">Редактировать</button>
+                    <button onclick="deleteReminder(${index})">Удалить</button>
+                </div>
+            </div>
+        `;
+
+        reminderList.appendChild(reminderCard);
+    });
+}
+
+function addReminder(name, description) {
+    reminders.push({ name, description });
+    saveReminders();
+    renderReminders();
+}
+
+function editReminder(index) {
+    const newName = prompt('Введите новое имя:');
+    const newDescription = prompt('Введите новое описание:');
+
+    if (newName && newDescription) {
+        reminders[index].name = newName;
+        reminders[index].description = newDescription;
+        saveReminders();
+        renderReminders();
+    }
+}
+
+function deleteReminder(index) {
+    if (confirm('Вы действительно хотите удалить эту заметку?')) {
+        reminders.splice(index, 1);
+        saveReminders();
+        renderReminders();
+    }
+}
+
+document.getElementById('start-btn').addEventListener('click', () => {
+    playSound('signal1');
+    setTimeout(() => {
+        startVoiceRecognitionName();
+    }, 3000); // Delay to wait for signal 1 to finish playing
+});
+
+function startVoiceRecognitionName() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ru-Ru';
+    recognition.start();
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.trim();
+        console.log('Recognized text (name):', transcript);
+        const name = transcript;
+        playSound('signal2');
+        setTimeout(() => {
+            startVoiceRecognitionDescription();
+        }, 3000); // Delay to wait for signal 2 to finish playing
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Recognition error:', event.error);
+    };
+}
+
+function startVoiceRecognitionDescription() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ru-RU';
+    recognition.start();
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.trim();
+        console.log('Recognized text (description):', transcript);
+        const description = transcript;
+        addReminder(name, description); // `name` variable is accessible due to closure
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Recognition error:', event.error);
+    };
+}
+
+document.getElementById('manual-btn').addEventListener('click', () => {
+    const name = prompt('Введите название:');
+    const description = prompt('Введиет описание:');
+
+    if (name && description) {
+        addReminder(name, description);
+    } else {
+        alert('Введите имя и описание.');
+    }
+});
+
+function playSound(soundId) {
+    const audio = document.getElementById(soundId);
+    audio.play();
+}
+
+renderReminders();
+    </script>
+</body>
+</html>
