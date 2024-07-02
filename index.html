@@ -186,16 +186,18 @@ document.getElementById('start-btn').addEventListener('click', () => {
     }, 3000); // Delay to wait for signal 1 to finish playing
 });
 
+let name = ''; // Global variable to store the name
+
 function startVoiceRecognitionName() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'ru-Ru';
+    recognition.lang = 'ru-RU';
     recognition.start();
 
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.trim();
         console.log('Recognized text (name):', transcript);
-        const name = transcript;
+        name = transcript; // Store the recognized name
         playSound('signal2');
         setTimeout(() => {
             startVoiceRecognitionDescription();
@@ -217,7 +219,7 @@ function startVoiceRecognitionDescription() {
         const transcript = event.results[0][0].transcript.trim();
         console.log('Recognized text (description):', transcript);
         const description = transcript;
-        addReminder(name, description); // `name` variable is accessible due to closure
+        addReminder(name, description); // Use the global `name` variable
     };
 
     recognition.onerror = (event) => {
